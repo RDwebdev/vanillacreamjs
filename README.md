@@ -1,3 +1,5 @@
+![VanillaCreamJS](./assets/images/logo.png)
+
 ## Vanilla JS with Superpowers
 
 **VanillaCreamJS** is a modern, lightweight, and elegant JavaScript micro-framework that enhances the native DOM API while keeping everything intuitive, declarative, and close to the metal. Designed for developers who love the simplicity of plain JavaScript but need productivity features commonly found in larger frameworks, VanillaCreamJS bridges the gap between power and purity.
