@@ -2,6 +2,10 @@
 
 ## Vanilla JS with Superpowers
 
+[![npm version](https://img.shields.io/npm/v/vanillacreamjs.svg)](https://www.npmjs.com/package/vanillacreamjs)
+[![npm downloads](https://img.shields.io/npm/dt/vanillacreamjs.svg)](https://www.npmjs.com/package/vanillacreamjs)
+[![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
 **VanillaCreamJS** is a modern, lightweight, and elegant JavaScript micro-framework that enhances the native DOM API while keeping everything intuitive, declarative, and close to the metal. Designed for developers who love the simplicity of plain JavaScript but need productivity features commonly found in larger frameworks, VanillaCreamJS bridges the gap between power and purity.
 
 ---
@@ -65,7 +69,7 @@ Read the docs to explore real-world examples, advanced concepts, and how to buil
 
 VanillaCreamJS was born out of real needs: the need to build **modern, reactive, modular interfaces** without giving up the performance, simplicity, and direct power of vanilla JavaScript.
 
-<img src="/assets/images/webp/rd-book.webp" alt="Riccardo Degni" class="w-72">
+<img src="/assets/images/rd.webp" alt="Riccardo Degni">
 
 Whether you're a solo developer or part of a team, if you love JavaScript, you'll love VanillaCreamJS.
 
