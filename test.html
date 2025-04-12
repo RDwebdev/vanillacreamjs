@@ -1,12 +1,29 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <script src="dist/vanillacream.min.js"></script>
 </head>
+
 <body>
-  <div id="app" x-state="{count: 0}">
+  <!-- app -->
+  <div id="app">
+    <button ref="btn">Increase counter</button>
+    <div ref="output"></div>
+  </div>
+
+  <script>
+    const { btn, output, state } = $.refs('#app', { count: 0 });
+
+    btn.onClick(() => state.count++);
+    output.text = () => `Counter: ${state.count}`;
+  </script>
+
+  <!-- app -->
+  <div id="app2" x-state="{count: 0}">
     <button x-event.click="() => state.count++">Increase counter</button>
     <div x-text="`Counter: ${state.count}`"></div>
   </div>
 </body>
+
 </html>
