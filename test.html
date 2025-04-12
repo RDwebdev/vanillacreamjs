@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="dist/vanillacream.min.js"></script>
+</head>
+<body>
+  <div id="app" x-state="{count: 0}">
+    <button x-event.click="() => state.count++">Increase counter</button>
+    <div x-text="`Counter: ${state.count}`"></div>
+  </div>
+</body>
+</html>

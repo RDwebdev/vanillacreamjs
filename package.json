@@ -1,0 +1,37 @@
+{
+	"name": "vanillacreamjs",
+	"version": "1.0.0",
+	"description": "VanillaCreamJS is a modern, lightweight, and elegant JavaScript micro-framework that enhances the native DOM API while keeping everything intuitive, declarative, and close to the metal. Designed for developers who love the simplicity of plain JavaScript but need productivity features commonly found in larger frameworks, VanillaCreamJS bridges the gap between power and purity.",
+	"main": "dist/vanillacream.min.js",
+	"module": "dist/vanillacream.js",
+	"exports": {
+		"import": "./dist/vanillacream.js",
+		"require": "./dist/vanillacream.min.js"
+	},
+	"files": [
+		"dist"
+	],
+	"keywords": [
+		"vanilla javascript",
+		"javascript",
+		"reactive",
+		"html-binding",
+		"micro-framework",
+		"dom",
+		"hypermedia ajax"
+	],
+	"scripts": {
+		"build": "rollup -c"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/RDwebdev/vanillacreamjs.git"
+	},
+	"homepage": "https://riccardodegni.com/projects/vanillacreamjs",
+	"author": "Riccardo Degni",
+	"license": "MIT",
+	"devDependencies": {
+		"rollup": "^2.79.2",
+		"rollup-plugin-terser": "^7.0.2"
+	}
+}
