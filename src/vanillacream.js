@@ -4,7 +4,7 @@ VanillaCream.Info = {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.0",
+    version: "1.0.3",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -1408,15 +1408,24 @@ function bindDataAttributes(container, state) {
                             "use strict";
                             const result = (${expr});
                             return (typeof result === "function") ? result(event, el, entry) : result;
-                        `);
-
+                        `
+                        );
+            
+                        let revealed = false;
+            
                         $el.onReveal((entry, el) => {
+                            if (modifiers.has("once") && revealed) return;
+                            revealed = true;
+            
                             compiled(state, null, el, entry);
-                        }, modifiers.has("keep") ? { keep: true } : {});
-
+                        }, {
+                            keep: modifiers.has("keep") || !modifiers.has("once") // keep is true by default unless once is present alone
+                        });
+            
                         continue;
                     }
         
+                    // All other DOM events
                     const compiled = new Function(
                         stateAlias,
                         "event",
@@ -1429,7 +1438,7 @@ function bindDataAttributes(container, state) {
 
                     const wrapped = function (e) {
                         if (modifiers.has("prevent")) e.preventDefault();
-                        compiled(state, e, $el); // ← Passiamo anche il wrapper potenziato
+                        compiled(state, e, $el); 
                         if (modifiers.has("once")) {
                             el.removeEventListener(eventName, wrapped);
                         }
@@ -1590,6 +1599,7 @@ function bindDataAttributes(container, state) {
     });
 }
 
+// refs
 $.refs = function (root, initialState = null) {
     const container =
         typeof root === "string"
@@ -1634,6 +1644,7 @@ $.refs = function (root, initialState = null) {
     return result;
 };
 
+// components
 $.component = {
     registry: {},
 
@@ -1849,6 +1860,7 @@ $.ajax = function (method, url, options = {}) {
     $[method] = (url, options = {}) => $.ajax(method, url, options);
 });
 
+// children
 Object.defineProperty(VanillaCream.Elements.prototype, "children", {
     get() {
         return [...this.dom.children].map((child) => $(child));
@@ -1936,6 +1948,76 @@ Object.defineProperty(VanillaCream.Elements.prototype, "children", {
         }
     },
 });
+
+// animations shortcuts
+VanillaCream.Elements.prototype.fadeIn = function (opts = {}) {
+    const el = this;
+    el.css.opacity = 0;
+    el.css.display = opts.display ?? 'block';
+
+    requestAnimationFrame(() => {
+        el.fx({
+            100: { opacity: 1 }
+        }, opts);
+    });
+
+    return el;
+};
+
+VanillaCream.Elements.prototype.fadeOut = function (opts = {}) {
+    const el = this;
+
+    el.fx({
+        100: { opacity: 0 }
+    }, {
+        ...opts,
+        complete: () => {
+            el.css.display = 'none';
+            if (typeof opts.complete === 'function') opts.complete();
+        }
+    });
+
+    return el;
+};
+
+VanillaCream.Elements.prototype.slideDown = function (opts = {}) {
+    const el = this;
+    el.css.overflow = 'hidden';
+    el.css.display = opts.display ?? 'block';
+
+    const targetHeight = el.dom.scrollHeight + 'px';
+
+    el.css.height = '0px';
+    requestAnimationFrame(() => {
+        el.fx({
+            100: { height: targetHeight }
+        }, opts);
+    });
+
+    return el;
+};
+
+VanillaCream.Elements.prototype.slideUp = function (opts = {}) {
+    const el = this;
+    el.css.overflow = 'hidden';
+
+    const startHeight = el.dom.offsetHeight + 'px';
+    el.css.height = startHeight;
+
+    requestAnimationFrame(() => {
+        el.fx({
+            100: { height: '0px' }
+        }, {
+            ...opts,
+            complete: () => {
+                el.css.display = 'none';
+                if (typeof opts.complete === 'function') opts.complete();
+            }
+        });
+    });
+
+    return el;
+};
 
 function log(...args) {
     console.log.apply(window, args);
