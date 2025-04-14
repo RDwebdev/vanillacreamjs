@@ -1,10 +1,10 @@
-const VanillaCream = { }
+const VanillaCream = {};
 VanillaCream.Info = {
     author: {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.0",
+    version: "1.0.2",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -356,8 +356,11 @@ VanillaCream.Elements = class {
                         return (styles) => {
                             for (const key in styles) {
                                 const value = styles[key];
-        
-                                if (typeof value === "function" && this.__state__) {
+
+                                if (
+                                    typeof value === "function" &&
+                                    this.__state__
+                                ) {
                                     this.bindState(`css.${key}`, value);
                                 } else {
                                     this._setFn(function () {
@@ -368,11 +371,13 @@ VanillaCream.Elements = class {
                             return this;
                         };
                     }
-        
+
                     if (prop === "get") {
                         return (...props) => {
                             if (this.only) {
-                                const computed = getComputedStyle(this.selector[0]);
+                                const computed = getComputedStyle(
+                                    this.selector[0]
+                                );
                                 const result = {};
                                 for (const p of props) result[p] = computed[p];
                                 return result;
@@ -387,14 +392,14 @@ VanillaCream.Elements = class {
                             }
                         };
                     }
-        
+
                     if (this.only)
                         return getComputedStyle(this.selector[0])[prop];
                     return this.selector.map(
                         (el) => getComputedStyle(el)[prop]
                     );
                 },
-        
+
                 set: (_, prop, value) => {
                     if (typeof value === "function" && this.__state__) {
                         this.bindState(`css.${prop}`, value);
@@ -407,7 +412,6 @@ VanillaCream.Elements = class {
                 },
             }
         );
-        
 
         this.attr = new Proxy(
             {},
@@ -417,12 +421,19 @@ VanillaCream.Elements = class {
                         return (attrs) => {
                             for (const key in attrs) {
                                 const value = attrs[key];
-        
-                                if (typeof value === "function" && this.__state__) {
+
+                                if (
+                                    typeof value === "function" &&
+                                    this.__state__
+                                ) {
                                     this.bindState(`attr.${key}`, value);
                                 } else {
                                     this._setFn(function () {
-                                        if (VanillaCream.PrivateObj.collections.props.includes(key)) {
+                                        if (
+                                            VanillaCream.PrivateObj.collections.props.includes(
+                                                key
+                                            )
+                                        ) {
                                             this[key] = value;
                                         } else {
                                             this.setAttribute(key, value);
@@ -433,40 +444,53 @@ VanillaCream.Elements = class {
                             return this;
                         };
                     }
-        
+
                     if (prop === "get") {
                         return (...props) => {
                             return this.only
                                 ? Object.fromEntries(
                                       props.map((p) => [
                                           p,
-                                          VanillaCream.PrivateObj.getPropVal(this.selector[0], p),
+                                          VanillaCream.PrivateObj.getPropVal(
+                                              this.selector[0],
+                                              p
+                                          ),
                                       ])
                                   )
                                 : this.selector.map((el) =>
                                       Object.fromEntries(
                                           props.map((p) => [
                                               p,
-                                              VanillaCream.PrivateObj.getPropVal(el, p),
+                                              VanillaCream.PrivateObj.getPropVal(
+                                                  el,
+                                                  p
+                                              ),
                                           ])
                                       )
                                   );
                         };
                     }
-        
+
                     return this.only
-                        ? VanillaCream.PrivateObj.getPropVal(this.selector[0], prop)
+                        ? VanillaCream.PrivateObj.getPropVal(
+                              this.selector[0],
+                              prop
+                          )
                         : this.selector.map((el) =>
                               VanillaCream.PrivateObj.getPropVal(el, prop)
                           );
                 },
-        
+
                 set: (_, prop, value) => {
                     if (typeof value === "function" && this.__state__) {
                         this.bindState(`attr.${prop}`, value);
                     } else {
                         this._setFn(function () {
-                            if (VanillaCream.PrivateObj.collections.props.includes(prop)) {
+                            if (
+                                VanillaCream.PrivateObj.collections.props.includes(
+                                    prop
+                                )
+                            ) {
                                 this[prop] = value;
                             } else {
                                 this.setAttribute(prop, value);
@@ -477,7 +501,6 @@ VanillaCream.Elements = class {
                 },
             }
         );
-        
 
         this.data = new Proxy(
             {},
@@ -487,8 +510,11 @@ VanillaCream.Elements = class {
                         return (data) => {
                             for (const key in data) {
                                 const value = data[key];
-        
-                                if (typeof value === "function" && this.__state__) {
+
+                                if (
+                                    typeof value === "function" &&
+                                    this.__state__
+                                ) {
                                     this.bindState(`data.${key}`, value);
                                 } else {
                                     this._setFn(function () {
@@ -499,28 +525,30 @@ VanillaCream.Elements = class {
                             return this;
                         };
                     }
-        
+
                     if (prop === "get") {
                         return (...props) => {
                             if (this.only) {
                                 const el = this.selector[0];
                                 const result = {};
-                                for (const p of props) result[p] = el.dataset[p];
+                                for (const p of props)
+                                    result[p] = el.dataset[p];
                                 return result;
                             } else {
                                 return this.selector.map((el) => {
                                     const result = {};
-                                    for (const p of props) result[p] = el.dataset[p];
+                                    for (const p of props)
+                                        result[p] = el.dataset[p];
                                     return result;
                                 });
                             }
                         };
                     }
-        
+
                     if (this.only) return this.selector[0].dataset[prop];
                     return this.selector.map((el) => el.dataset[prop]);
                 },
-        
+
                 set: (_, prop, value) => {
                     if (typeof value === "function" && this.__state__) {
                         this.bindState(`data.${prop}`, value);
@@ -533,7 +561,6 @@ VanillaCream.Elements = class {
                 },
             }
         );
-        
 
         this.classes = new Proxy(
             {},
@@ -619,28 +646,36 @@ VanillaCream.Elements = class {
                                 return (classes) => {
                                     for (const key in classes) {
                                         const val = classes[key];
-        
-                                        if (typeof val === "function" && this.__state__) {
+
+                                        if (
+                                            typeof val === "function" &&
+                                            this.__state__
+                                        ) {
                                             this.bindState(`class.${key}`, val);
                                         } else {
                                             this._setFn(function () {
-                                                this.classList.toggle(key, !!val);
+                                                this.classList.toggle(
+                                                    key,
+                                                    !!val
+                                                );
                                             });
                                         }
                                     }
                                     return this;
                                 };
                             }
-        
+
                             if (this.only) {
-                                return this.selector[0].classList.contains(className);
+                                return this.selector[0].classList.contains(
+                                    className
+                                );
                             } else {
                                 return this.selector.map((el) =>
                                     el.classList.contains(className)
                                 );
                             }
                         },
-        
+
                         set: (_, className, value) => {
                             if (typeof value === "function" && this.__state__) {
                                 this.bindState(`class.${className}`, value);
@@ -654,11 +689,11 @@ VanillaCream.Elements = class {
                     }
                 );
             },
-        
+
             set(classObj) {
                 for (const className in classObj) {
                     const value = classObj[className];
-        
+
                     if (typeof value === "function" && this.__state__) {
                         this.bindState(`class.${className}`, value);
                     } else {
@@ -669,7 +704,6 @@ VanillaCream.Elements = class {
                 }
             },
         });
-        
 
         Object.defineProperty(this, "html", {
             get: () => {
@@ -762,7 +796,8 @@ VanillaCream.Elements = class {
     }
 
     on(event, handler, options = {}) {
-        if (!this._vanillaCreamEventMap) this._vanillaCreamEventMap = new WeakMap();
+        if (!this._vanillaCreamEventMap)
+            this._vanillaCreamEventMap = new WeakMap();
 
         const add = (elDom, evt, fn) => {
             const vanillaCreamInstance = $(elDom);
@@ -920,7 +955,8 @@ VanillaCream.Elements = class {
         if (!_opts.state) _opts.state = {};
 
         const callbacks = (el, animKey) => {
-            const store = (VanillaCream.PrivateObj.fxTimeoutMap ??= new WeakMap());
+            const store = (VanillaCream.PrivateObj.fxTimeoutMap ??=
+                new WeakMap());
 
             if (!store.has(el)) store.set(el, new Map());
             const animMap = store.get(el);
@@ -1082,13 +1118,16 @@ VanillaCream.Elements = class {
             },
         });
     }
-}
+};
 
 for (const evt of VanillaCream.PrivateObj.collections.events) {
     const methodName = "on" + evt.charAt(0).toUpperCase() + evt.slice(1);
 
     if (!VanillaCream.Elements.prototype.hasOwnProperty(methodName)) {
-        VanillaCream.Elements.prototype[methodName] = function (fn, options = {}) {
+        VanillaCream.Elements.prototype[methodName] = function (
+            fn,
+            options = {}
+        ) {
             return this.on(evt, fn, options);
         };
     }
@@ -1167,11 +1206,11 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
         make() {
             const el = $(document.createElement(this.selector));
             el.dom.dataset.key = this.key;
-        
+
             if (this.state) {
-                el.setState(this.state)
+                el.setState(this.state);
             }
-        
+
             if (this.attr) {
                 if (typeof el.attr.set === "function") {
                     el.attr.set(this.attr);
@@ -1181,7 +1220,7 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
                     }
                 }
             }
-        
+
             if (this.data) {
                 if (typeof el.data.set === "function") {
                     el.data.set(this.data);
@@ -1191,7 +1230,7 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
                     }
                 }
             }
-        
+
             if (this.css) {
                 if (typeof el.css.set === "function") {
                     el.css.set(this.css);
@@ -1201,7 +1240,7 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
                     }
                 }
             }
-        
+
             if (this.class) {
                 if (typeof el.class.set === "function") {
                     el.class.set(this.class);
@@ -1211,21 +1250,20 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
                     }
                 }
             }
-        
+
             if (this.classes) {
                 el.classes.add(this.classes);
             }
-        
+
             if (this.html) el.html = this.html;
             if (this.text) el.text = this.text;
             if (this._text) el._text = this._text;
-        
+
             if (this.on) el.on(this.on);
             if (this.onClick) el.onClick(this.onClick);
-        
+
             return el;
         }
-        
     };
 });
 
@@ -1242,7 +1280,8 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
 // aliases
 [{ push: "addChild", find: "query" }].forEach((map) => {
     for (const k in map) {
-        VanillaCream.Elements.prototype[k] = VanillaCream.Elements.prototype[map[k]];
+        VanillaCream.Elements.prototype[k] =
+            VanillaCream.Elements.prototype[map[k]];
     }
 });
 
@@ -1299,12 +1338,18 @@ function $(...args) {
 function bindDataAttributes(container, state) {
     const stateAlias = container.getAttribute?.("data-state-val") || "state";
 
-    const candidates = [container, ...container.querySelectorAll("*")].filter((el) =>
-        [...el.attributes].some((a) => a.name.startsWith("x-") || a.name.startsWith("data-bind-"))
+    const candidates = [container, ...container.querySelectorAll("*")].filter(
+        (el) =>
+            [...el.attributes].some(
+                (a) =>
+                    a.name.startsWith("x-") || a.name.startsWith("data-bind-")
+            )
     );
-    
+
     const bindables = candidates.filter((el) =>
-        [...el.attributes].some((a) => a.name.startsWith("x-") || a.name.startsWith("data-bind-"))
+        [...el.attributes].some(
+            (a) => a.name.startsWith("x-") || a.name.startsWith("data-bind-")
+        )
     );
 
     bindables.forEach((el) => {
@@ -1312,7 +1357,8 @@ function bindDataAttributes(container, state) {
 
         for (const attr of el.attributes) {
             const isBindAttr =
-                attr.name.startsWith("data-bind-") || attr.name.startsWith("x-");
+                attr.name.startsWith("data-bind-") ||
+                attr.name.startsWith("x-");
             if (!isBindAttr) continue;
 
             const binding = attr.name
@@ -1333,11 +1379,15 @@ function bindDataAttributes(container, state) {
                 const modifiers = new Set(parts.slice(2));
 
                 try {
-                    const compiled = new Function(stateAlias, "event", `
+                    const compiled = new Function(
+                        stateAlias,
+                        "event",
+                        `
                         "use strict";
                         const result = (${expr});
                         return (typeof result === "function") ? result(event) : result;
-                    `);
+                    `
+                    );
 
                     const wrapped = function (e) {
                         if (modifiers.has("prevent")) e.preventDefault();
@@ -1349,7 +1399,11 @@ function bindDataAttributes(container, state) {
 
                     $el.on(eventName, wrapped);
                 } catch (e) {
-                    console.warn(`Invalid event handler in [${attr.name}]`, expr, e);
+                    console.warn(
+                        `Invalid event handler in [${attr.name}]`,
+                        expr,
+                        e
+                    );
                 }
                 continue;
             }
@@ -1359,7 +1413,10 @@ function bindDataAttributes(container, state) {
                 const placeholder = document.createComment("x-if placeholder");
                 const parent = el.parentNode;
 
-                const computeFn = new Function(stateAlias, `return (${expr})`).bind(null, state);
+                const computeFn = new Function(
+                    stateAlias,
+                    `return (${expr})`
+                ).bind(null, state);
                 let visible = null;
 
                 const update = () => {
@@ -1383,7 +1440,10 @@ function bindDataAttributes(container, state) {
 
             // x-show
             if (binding === "show") {
-                const computeFn = new Function(stateAlias, `return (${expr})`).bind(null, state);
+                const computeFn = new Function(
+                    stateAlias,
+                    `return (${expr})`
+                ).bind(null, state);
                 $el.bindState("css.display", () => (computeFn() ? "" : "none"));
                 continue;
             }
@@ -1391,10 +1451,17 @@ function bindDataAttributes(container, state) {
             // x-children
             if (binding === "children") {
                 try {
-                    const computeFn = new Function(stateAlias, `return (${expr})`).bind(null, state);
+                    const computeFn = new Function(
+                        stateAlias,
+                        `return (${expr})`
+                    ).bind(null, state);
                     $el.bindState("children", computeFn);
                 } catch (e) {
-                    console.warn(`Invalid binding expression in [${attr.name}]`, expr, e);
+                    console.warn(
+                        `Invalid binding expression in [${attr.name}]`,
+                        expr,
+                        e
+                    );
                 }
                 continue;
             }
@@ -1402,18 +1469,30 @@ function bindDataAttributes(container, state) {
             // Other bindings
             try {
                 // x-class
-                if (binding === "class" && expr.trim().startsWith("{") && expr.trim().endsWith("}")) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(state);
+                if (
+                    binding === "class" &&
+                    expr.trim().startsWith("{") &&
+                    expr.trim().endsWith("}")
+                ) {
+                    const parsed = new Function(stateAlias, `return (${expr})`)(
+                        state
+                    );
 
                     for (const key in parsed) {
                         const val = parsed[key];
                         const fn = typeof val === "function" ? val : () => val;
                         $el.bindState(`class.${key}`, fn);
                     }
-                } 
+                }
                 // x-attr
-                else if (binding === "attr" && expr.trim().startsWith("{") && expr.trim().endsWith("}")) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(state);
+                else if (
+                    binding === "attr" &&
+                    expr.trim().startsWith("{") &&
+                    expr.trim().endsWith("}")
+                ) {
+                    const parsed = new Function(stateAlias, `return (${expr})`)(
+                        state
+                    );
 
                     for (const key in parsed) {
                         const val = parsed[key];
@@ -1422,8 +1501,14 @@ function bindDataAttributes(container, state) {
                     }
                 }
                 // x-css
-                else if (binding === "css" && expr.trim().startsWith("{") && expr.trim().endsWith("}")) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(state);
+                else if (
+                    binding === "css" &&
+                    expr.trim().startsWith("{") &&
+                    expr.trim().endsWith("}")
+                ) {
+                    const parsed = new Function(stateAlias, `return (${expr})`)(
+                        state
+                    );
 
                     for (const key in parsed) {
                         const val = parsed[key];
@@ -1432,9 +1517,15 @@ function bindDataAttributes(container, state) {
                     }
                 }
                 // x-data
-                else if (binding === "data" && expr.trim().startsWith("{") && expr.trim().endsWith("}")) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(state);
-                    log('eeher')
+                else if (
+                    binding === "data" &&
+                    expr.trim().startsWith("{") &&
+                    expr.trim().endsWith("}")
+                ) {
+                    const parsed = new Function(stateAlias, `return (${expr})`)(
+                        state
+                    );
+                    log("eeher");
 
                     for (const key in parsed) {
                         const val = parsed[key];
@@ -1444,11 +1535,18 @@ function bindDataAttributes(container, state) {
                 }
                 // others
                 else {
-                    const computeFn = new Function(stateAlias, `return (${expr})`).bind(null, state);
+                    const computeFn = new Function(
+                        stateAlias,
+                        `return (${expr})`
+                    ).bind(null, state);
                     $el.bindState(binding, computeFn);
                 }
             } catch (e) {
-                console.warn(`Invalid binding expression in [${attr.name}]`, expr, e);
+                console.warn(
+                    `Invalid binding expression in [${attr.name}]`,
+                    expr,
+                    e
+                );
             }
         }
     });
@@ -1479,15 +1577,22 @@ $.refs = function (root, initialState = null) {
             $el.bindState = VanillaCream.Elements.prototype.bindState;
         }
 
-        const refName = el.getAttribute("ref");
-        result[refName] = $el;
+        const path = el.getAttribute("ref").split(".");
+        let target = result;
+
+        for (let i = 0; i < path.length - 1; i++) {
+            target[path[i]] ??= {};
+            target = target[path[i]];
+        }
+
+        target[path.at(-1)] = $el;
     });
 
     if (state) {
         result.state = state;
         bindDataAttributes(container, state);
-    } 
-    
+    }
+
     return result;
 };
 
@@ -1649,7 +1754,7 @@ $.state = function (obj) {
                         const item = Reflect.get(target, prop, receiver);
                         // If I access item array like arr[2] which is another array/object
                         return wrap(item, parentKey);
-                    }
+                    },
                 });
             } else {
                 return new Proxy(value, {
@@ -1661,7 +1766,7 @@ $.state = function (obj) {
                     get(target, prop, receiver) {
                         const val = Reflect.get(target, prop, receiver);
                         return wrap(val, parentKey); // Recursive depth
-                    }
+                    },
                 });
             }
         }
@@ -1677,7 +1782,7 @@ $.state = function (obj) {
         get(target, prop, receiver) {
             const value = Reflect.get(target, prop, receiver);
             return wrap(value, prop); // Reactive even for nested accesses
-        }
+        },
     });
 
     proxy._watchers = watchers;
@@ -1690,11 +1795,11 @@ $.state = function (obj) {
 };
 
 $.watch = function (fn, state, keys) {
-	const props = Array.isArray(keys) ? keys : [keys];
+    const props = Array.isArray(keys) ? keys : [keys];
 
-	for (const key of props) {
-		state._addWatcher(key, fn);
-	}
+    for (const key of props) {
+        state._addWatcher(key, fn);
+    }
 };
 
 // ajax
@@ -1707,6 +1812,10 @@ $.ajax = function (method, url, options = {}) {
 });
 
 Object.defineProperty(VanillaCream.Elements.prototype, "children", {
+    get() {
+        return [...this.dom.children].map((child) => $(child));
+    },
+
     set(value) {
         const container = this.dom;
         const self = this;
@@ -1720,11 +1829,15 @@ Object.defineProperty(VanillaCream.Elements.prototype, "children", {
             const nodes = [];
 
             for (const item of arr) {
-                const node = item instanceof VanillaCream.Elements ? item.dom : item;
+                const node =
+                    item instanceof VanillaCream.Elements ? item.dom : item;
                 const key = getKey(node);
 
                 if (!key) {
-                    console.warn("Each item in children must have a key or data-key:", node);
+                    console.warn(
+                        "Each item in children must have a key or data-key:",
+                        node
+                    );
                     continue;
                 }
 
@@ -1736,7 +1849,9 @@ Object.defineProperty(VanillaCream.Elements.prototype, "children", {
 
         const update = (newNodesRaw) => {
             const newNodes = normalize(newNodesRaw);
-            const newMap = new Map(newNodes.map(({ key, node }) => [key, node]));
+            const newMap = new Map(
+                newNodes.map(({ key, node }) => [key, node])
+            );
             const existing = [...container.childNodes];
             const existingMap = new Map();
 
@@ -1781,7 +1896,7 @@ Object.defineProperty(VanillaCream.Elements.prototype, "children", {
             // Otherwise it's an array (as in x-children="..."), update immediately
             update(value);
         }
-    }
+    },
 });
 
 function log(...args) {
@@ -1801,19 +1916,22 @@ onMount(() => {
     const intervalHandles = new WeakMap();
     const onceFired = new WeakSet();
 
-    const observer = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-            if (entry.isIntersecting) {
-                const el = entry.target;
-                if (el._VanillaCream.AjaxHandler) {
-                    el._VanillaCream.AjaxHandler();
-                    if (el._VanillaCream.AjaxOnce) observer.unobserve(el);
+    const observer = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    if (el._VanillaCream.AjaxHandler) {
+                        el._VanillaCream.AjaxHandler();
+                        if (el._VanillaCream.AjaxOnce) observer.unobserve(el);
+                    }
                 }
             }
+        },
+        {
+            threshold: 0.1,
         }
-    }, {
-        threshold: 0.1
-    });
+    );
 
     function parseJsObjectString(str) {
         try {
@@ -1830,57 +1948,59 @@ onMount(() => {
         target[action] = output;
     }
 
-	function resolveDynamicValues(data, $el) {
-		const resolved = {};
-	
-		for (const key in data) {
-			const value = data[key];
-	
-			if (typeof value === "string" && value.startsWith("@")) {
-				const parts = value.slice(1).split(".");
-	
-				const selectorStr = parts[0];
-				const namespace = parts[1];
-				const prop = parts[2];
-	
-				const sel = selectorStr === "this" ? $el : $(selectorStr);
-	
-				if (!sel) {
-					console.warn(`Selector '${selectorStr}' not found`);
-					resolved[key] = null;
-					continue;
-				}
-	
-				switch (namespace) {
-					case "attr":
-						resolved[key] = sel.attr[prop];
-						break;
-					case "data":
-						resolved[key] = sel.data[prop];
-						break;
-					case "css":
-						resolved[key] = sel.css[prop];
-						break;
-					case "class":
-						resolved[key] = sel.class[prop];
-						break;
-					case "text":
-					case "_text":
-					case "html":
-						resolved[key] = sel[namespace];
-						break;
-					default:
-						console.warn(`Unknown namespace '${namespace}' in '${value}'`);
-						resolved[key] = null;
-						break;
-				}
-			} else {
-				resolved[key] = value;
-			}
-		}
-	
-		return resolved;
-	}	
+    function resolveDynamicValues(data, $el) {
+        const resolved = {};
+
+        for (const key in data) {
+            const value = data[key];
+
+            if (typeof value === "string" && value.startsWith("@")) {
+                const parts = value.slice(1).split(".");
+
+                const selectorStr = parts[0];
+                const namespace = parts[1];
+                const prop = parts[2];
+
+                const sel = selectorStr === "this" ? $el : $(selectorStr);
+
+                if (!sel) {
+                    console.warn(`Selector '${selectorStr}' not found`);
+                    resolved[key] = null;
+                    continue;
+                }
+
+                switch (namespace) {
+                    case "attr":
+                        resolved[key] = sel.attr[prop];
+                        break;
+                    case "data":
+                        resolved[key] = sel.data[prop];
+                        break;
+                    case "css":
+                        resolved[key] = sel.css[prop];
+                        break;
+                    case "class":
+                        resolved[key] = sel.class[prop];
+                        break;
+                    case "text":
+                    case "_text":
+                    case "html":
+                        resolved[key] = sel[namespace];
+                        break;
+                    default:
+                        console.warn(
+                            `Unknown namespace '${namespace}' in '${value}'`
+                        );
+                        resolved[key] = null;
+                        break;
+                }
+            } else {
+                resolved[key] = value;
+            }
+        }
+
+        return resolved;
+    }
 
     ["get", "post", "put", "patch", "delete"].forEach((method) => {
         document.querySelectorAll(`[data-ajax-${method}]`).forEach((dom) => {
@@ -1909,10 +2029,19 @@ onMount(() => {
                         if (config.start) target.html = config.start;
 
                         const res = await $.ajax(method, config.url, {
-							...(config.data ? { data: resolveDynamicValues(config.data, $el) } : {}),
-							...(config.headers ? { headers: config.headers } : {}),
-							...(config.type ? { type: config.type } : {}),
-						});						
+                            ...(config.data
+                                ? {
+                                      data: resolveDynamicValues(
+                                          config.data,
+                                          $el
+                                      ),
+                                  }
+                                : {}),
+                            ...(config.headers
+                                ? { headers: config.headers }
+                                : {}),
+                            ...(config.type ? { type: config.type } : {}),
+                        });
 
                         if (res && res.stopEvery && intervalHandles.has(dom)) {
                             clearInterval(intervalHandles.get(dom));
@@ -1952,67 +2081,70 @@ onMount(() => {
                     const handle = setInterval(performRequest, interval);
                     intervalHandles.set(dom, handle);
                 }
-
             } else if (trigger === "revealed") {
-				const once = config.once ?? true;
-                
+                const once = config.once ?? true;
+
                 if (!dom._VanillaCream) dom._VanillaCream = {};
 
-				dom._VanillaCream.AjaxHandler = () => {
-					performRequest();
-			
-					if (config.every) {
-						const interval = parseFloat(config.every) * 1000;
-						const handle = setInterval(performRequest, interval);
-						intervalHandles.set(dom, handle);
-					}
-				};
-				dom._VanillaCream.AjaxOnce = once;
-				observer.observe(dom);
-			}
-			else {
-				dom.addEventListener(trigger, () => {
-					if (config.once && onceFired.has(dom)) return;
-			
-					debouncedHandler();
-			
-					if (config.once) onceFired.add(dom);
-				});
-			}
-			
+                dom._VanillaCream.AjaxHandler = () => {
+                    performRequest();
+
+                    if (config.every) {
+                        const interval = parseFloat(config.every) * 1000;
+                        const handle = setInterval(performRequest, interval);
+                        intervalHandles.set(dom, handle);
+                    }
+                };
+                dom._VanillaCream.AjaxOnce = once;
+                observer.observe(dom);
+            } else {
+                dom.addEventListener(trigger, () => {
+                    if (config.once && onceFired.has(dom)) return;
+
+                    debouncedHandler();
+
+                    if (config.once) onceFired.add(dom);
+                });
+            }
         });
     });
 });
 
 onMount(() => {
-	const all = document.querySelectorAll("[data-bind-state], [x-state]");
+    const all = document.querySelectorAll("[data-bind-state], [x-state]");
 
-	all.forEach((el) => {
+    all.forEach((el) => {
         const isData = el.hasAttribute("data-bind-state");
         const isX = el.hasAttribute("x-state");
-    
+
         const id = el.id;
         if (!id) {
-            console.warn("Element with [data-bind-state] or [x-state] must have an ID");
+            console.warn(
+                "Element with [data-bind-state] or [x-state] must have an ID"
+            );
             return;
         }
-    
+
         const stateStr = isData
             ? el.getAttribute("data-bind-state")
             : el.getAttribute("x-state");
-    
+
         const alias = el.getAttribute("data-state-val") || "state";
-    
+
         let parsedState = {};
         try {
             parsedState = new Function(`return (${stateStr})`)();
         } catch (err) {
-            console.warn(`Invalid object in ${isData ? "data-bind-state" : "x-state"} on #${id}`, err);
+            console.warn(
+                `Invalid object in ${
+                    isData ? "data-bind-state" : "x-state"
+                } on #${id}`,
+                err
+            );
             return;
         }
-    
+
         const refs = $.refs(`#${id}`, parsedState);
         window[alias] = refs.state;
     });
-    
 });
