@@ -4,7 +4,7 @@ VanillaCream.Info = {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.2",
+    version: "1.0.0",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -798,17 +798,31 @@ VanillaCream.Elements = class {
     on(event, handler, options = {}) {
         if (!this._vanillaCreamEventMap)
             this._vanillaCreamEventMap = new WeakMap();
-
+    
         const add = (elDom, evt, fn) => {
             const vanillaCreamInstance = $(elDom);
-
+    
+            if (evt === "reveal") {
+                const observer = new IntersectionObserver(([entry], obs) => {
+                    if (entry.isIntersecting) {
+                        fn.call(elDom, null, vanillaCreamInstance, entry);
+                        if (!options.keep) {
+                            obs.unobserve(elDom);
+                        }
+                    }
+                }, options);
+    
+                observer.observe(elDom);
+                return;
+            }
+    
             const wrapped = function (event) {
                 const el = vanillaCreamInstance;
                 fn.call(this, event, el);
             };
-
+    
             elDom.addEventListener(evt, wrapped, options);
-
+    
             if (!this._vanillaCreamEventMap.has(elDom)) {
                 this._vanillaCreamEventMap.set(elDom, {});
             }
@@ -816,7 +830,7 @@ VanillaCream.Elements = class {
             if (!map[evt]) map[evt] = [];
             map[evt].push(wrapped);
         };
-
+    
         this.selector.forEach((el) => {
             if (typeof event === "object") {
                 for (const evt in event) {
@@ -826,9 +840,9 @@ VanillaCream.Elements = class {
                 add(el, event, handler);
             }
         });
-
+    
         return this;
-    }
+    }    
 
     off(event, handler) {
         if (!this._vanillaCreamEventMap) return this;
@@ -1120,6 +1134,7 @@ VanillaCream.Elements = class {
     }
 };
 
+// event shortcuts
 for (const evt of VanillaCream.PrivateObj.collections.events) {
     const methodName = "on" + evt.charAt(0).toUpperCase() + evt.slice(1);
 
@@ -1132,6 +1147,9 @@ for (const evt of VanillaCream.PrivateObj.collections.events) {
         };
     }
 }
+VanillaCream.Elements.prototype.onReveal = function (fn, options = {}) {
+    return this.on("reveal", fn, options);
+};
 
 Object.defineProperty(VanillaCream.Elements.prototype, "swap", {
     set(content) {
@@ -1379,23 +1397,43 @@ function bindDataAttributes(container, state) {
                 const modifiers = new Set(parts.slice(2));
 
                 try {
+                    // Special case: reveal
+                    if (eventName === "reveal") {
+                        const compiled = new Function(
+                            stateAlias,
+                            "event",
+                            "el",
+                            "entry",
+                            `
+                            "use strict";
+                            const result = (${expr});
+                            return (typeof result === "function") ? result(event, el, entry) : result;
+                        `);
+
+                        $el.onReveal((entry, el) => {
+                            compiled(state, null, el, entry);
+                        }, modifiers.has("keep") ? { keep: true } : {});
+
+                        continue;
+                    }
+        
                     const compiled = new Function(
                         stateAlias,
                         "event",
+                        "el",
                         `
                         "use strict";
                         const result = (${expr});
-                        return (typeof result === "function") ? result(event) : result;
-                    `
-                    );
+                        return (typeof result === "function") ? result(event, el) : result;
+                    `);                    
 
                     const wrapped = function (e) {
                         if (modifiers.has("prevent")) e.preventDefault();
-                        compiled(state, e);
+                        compiled(state, e, $el); // ← Passiamo anche il wrapper potenziato
                         if (modifiers.has("once")) {
                             el.removeEventListener(eventName, wrapped);
                         }
-                    };
+                    };                    
 
                     $el.on(eventName, wrapped);
                 } catch (e) {
