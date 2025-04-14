@@ -2,28 +2,51 @@
 <html>
 
 <head>
+  <title>VanillaCreamJS - JavaScript with SuperPowers</title>
   <script src="vanillacream.min.js"></script>
+  <style>
+    html, body {padding: 0; margin: 0;}
+    body {width: 100%; background-color: #FBF2DE; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: Arial, Helvetica, sans-serif;}
+    header, footer {text-align: center;}
+    footer {margin-top: 20px;}
+    footer a {color: #2563eb;}
+    #main {padding: 10px; display: flex; gap: 20px;}
+    #main > div {border: 1px solid lightgrey; border-radius: 6px; padding: 20px;}
+    button {padding: 10px; border: 1px solid lightgrey; border-radius: 6px; text-transform: uppercase; margin-bottom: 10px; cursor: pointer;}
+  </style>
 </head>
 
 <body>
-  <!-- app -->
-  <div id="app">
-    <button ref="btn">Increase counter</button>
-    <div ref="output"></div>
-  </div>
 
-  <script>
-    const { btn, output, state } = $.refs('#app', { count: 0 });
+  <main>
+    <header>
+      <img src="logo.png" alt="VanillaCreamJS Logo">
+    </header>
+    <div id="main">
+      <!-- app1 -->
+      <div id="app1">
+        <button ref="btn">Increase counter</button>
+        <div ref="output"></div>
+      </div>
+    
+      <script>
+        const { btn, output, state } = $.refs('#app1', { count: 0 });
+    
+        btn.onClick(() => state.count++);
+        output.text = () => `Counter: ${state.count}`;
+      </script>
+    
+      <!-- app2 -->
+      <div id="app2" x-state="{count: 0}">
+        <button x-event.click="() => state.count++">Increase counter</button>
+        <div x-text="`Counter: ${state.count}`"></div>
+      </div>
+    </div>
+    <footer>
+      <a href="https://riccardodegni.com/projects/vanillacreamjs">VanillaCreamJS</a> by <a href="https://riccardodegni.com/">Riccardo Degni</a> - © All rights reserved
+    </footer>
+  </main>
 
-    btn.onClick(() => state.count++);
-    output.text = () => `Counter: ${state.count}`;
-  </script>
-
-  <!-- app -->
-  <div id="app2" x-state="{count: 0}">
-    <button x-event.click="() => state.count++">Increase counter</button>
-    <div x-text="`Counter: ${state.count}`"></div>
-  </div>
 </body>
 
 </html>
