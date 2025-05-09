@@ -1,6 +1,6 @@
 {
 	"name": "vanillacreamjs",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "VanillaCreamJS is a modern, lightweight, and elegant JavaScript micro-framework that enhances the native DOM API while keeping everything intuitive, declarative, and close to the metal. Designed for developers who love the simplicity of plain JavaScript but need productivity features commonly found in larger frameworks, VanillaCreamJS bridges the gap between power and purity.",
 	"main": "dist/vanillacream.min.js",
 	"module": "dist/vanillacream.js",

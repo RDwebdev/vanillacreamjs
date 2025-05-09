@@ -4,7 +4,7 @@ VanillaCream.Info = {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.3",
+    version: "1.0.4",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -36,14 +36,8 @@ VanillaCream.PrivateObj = {
         return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
     },
 
-    selectorStorage: new Map(),
-
     select(selector) {
         return new VanillaCream.Elements(selector);
-    },
-
-    clearSelectorStorage() {
-        VanillaCream.PrivateObj.selectorStorage.clear();
     },
 
     isState(obj) {
@@ -818,8 +812,12 @@ VanillaCream.Elements = class {
     
             const wrapped = function (event) {
                 const el = vanillaCreamInstance;
+                if (options.prevent) event.preventDefault();
                 fn.call(this, event, el);
-            };
+                if (options.once) {
+                    elDom.removeEventListener(evt, wrapped);
+                }
+            };            
     
             elDom.addEventListener(evt, wrapped, options);
     
@@ -893,19 +891,29 @@ VanillaCream.Elements = class {
         return this;
     }
 
-    async load(method, url, options = {}, handlers = {}) {
-        if (handlers.start) handlers.start();
+    async load(method, url, options = {}) {
+        const { beforeStart, start, success, error, ...fetchOptions } = options;
+    
+        if (typeof beforeStart === "function") beforeStart();
 
+        if (typeof options.delay === "number" && options.delay > 0) {
+            await new Promise(resolve => setTimeout(resolve, options.delay * 1000));
+        }
+
+        if (typeof start === "function") start();
+               
         try {
-            const data = await VanillaCream.Ajax.request(method, url, options);
-            const html =
-                typeof data === "string" ? data : JSON.stringify(data, null, 2);
+            const data = await VanillaCream.Ajax.request(method, url, fetchOptions);
+            const html = typeof data === "string"
+                ? data
+                : JSON.stringify(data, null, 2);
+    
             this.html = html;
-
-            if (handlers.success) handlers.success(data);
+    
+            if (typeof success === "function") success(data);
             return data;
         } catch (err) {
-            if (handlers.error) handlers.error(err);
+            if (typeof error === "function") error(err);
             throw err;
         }
     }
@@ -1200,6 +1208,7 @@ Object.defineProperty(VanillaCream.Elements.prototype, "swap", {
     },
 });
 
+// making elements
 VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
     window[selector] = class {
         constructor(settings = {}) {
@@ -1223,7 +1232,7 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
 
         make() {
             const el = $(document.createElement(this.selector));
-            el.dom.dataset.key = this.key;
+            if(this.key) el.dom.dataset.key = this.key;
 
             if (this.state) {
                 el.setState(this.state);
@@ -1390,7 +1399,24 @@ function bindDataAttributes(container, state) {
                 $el.bindState = VanillaCream.Elements.prototype.bindState;
             }
 
-            // Events
+            // x-init
+            if (binding === "init") {
+                try {
+                    const initFn = new Function(stateAlias, "el", `
+                        "use strict";
+                        const result = (${expr});
+                        return (typeof result === "function") ? result(el) : result;
+                    `);
+
+                    // Esegui subito una sola volta
+                    initFn(state, $el);
+                } catch (e) {
+                    console.warn(`Invalid x-init expression: ${expr}`, e);
+                }
+                continue;
+            }
+
+            // Events / x-event
             if (binding.startsWith("event.")) {
                 const parts = binding.split(".");
                 const eventName = parts[1];
@@ -1852,11 +1878,29 @@ $.watch = function (fn, state, keys) {
 };
 
 // ajax
-$.ajax = function (method, url, options = {}) {
-    return VanillaCream.Ajax.request(method, url, options);
+$.ajax = async function (method, url, options = {}) {
+    const { beforeStart, start, success, error, ...fetchOptions } = options;
+    
+    if (typeof beforeStart === "function") beforeStart();
+
+    if (typeof options.delay === "number" && options.delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, options.delay * 1000));
+    }
+
+    if (typeof start === "function") start();
+
+    return VanillaCream.Ajax.request(method, url, fetchOptions)
+        .then(res => {
+            if (typeof success === "function") success(res);
+            return res;
+        })
+        .catch(err => {
+            if (typeof error === "function") error(err);
+            throw err;
+        });
 };
 
-["get", "post", "put", "patch", "delete"].forEach((method) => {
+["get", "post", "put", "patch", "delete"].forEach(async (method) => {
     $[method] = (url, options = {}) => $.ajax(method, url, options);
 });
 
@@ -1950,63 +1994,26 @@ Object.defineProperty(VanillaCream.Elements.prototype, "children", {
 });
 
 // animations shortcuts
-VanillaCream.Elements.prototype.fadeIn = function (opts = {}) {
-    const el = this;
-    el.css.opacity = 0;
-    el.css.display = opts.display ?? 'block';
+Object.assign(VanillaCream.Elements.prototype, {
+    fadeIn(opts = {}) {
+        const el = this;
+        el.css.opacity = 0;
+        el.css.display = opts.display ?? 'block';
+    
+        requestAnimationFrame(() => {
+            el.fx({
+                100: { opacity: 1 }
+            }, opts);
+        });
+    
+        return el;
+    },
 
-    requestAnimationFrame(() => {
+    fadeOut(opts = {}) {
+        const el = this;
+    
         el.fx({
-            100: { opacity: 1 }
-        }, opts);
-    });
-
-    return el;
-};
-
-VanillaCream.Elements.prototype.fadeOut = function (opts = {}) {
-    const el = this;
-
-    el.fx({
-        100: { opacity: 0 }
-    }, {
-        ...opts,
-        complete: () => {
-            el.css.display = 'none';
-            if (typeof opts.complete === 'function') opts.complete();
-        }
-    });
-
-    return el;
-};
-
-VanillaCream.Elements.prototype.slideDown = function (opts = {}) {
-    const el = this;
-    el.css.overflow = 'hidden';
-    el.css.display = opts.display ?? 'block';
-
-    const targetHeight = el.dom.scrollHeight + 'px';
-
-    el.css.height = '0px';
-    requestAnimationFrame(() => {
-        el.fx({
-            100: { height: targetHeight }
-        }, opts);
-    });
-
-    return el;
-};
-
-VanillaCream.Elements.prototype.slideUp = function (opts = {}) {
-    const el = this;
-    el.css.overflow = 'hidden';
-
-    const startHeight = el.dom.offsetHeight + 'px';
-    el.css.height = startHeight;
-
-    requestAnimationFrame(() => {
-        el.fx({
-            100: { height: '0px' }
+            100: { opacity: 0 }
         }, {
             ...opts,
             complete: () => {
@@ -2014,10 +2021,49 @@ VanillaCream.Elements.prototype.slideUp = function (opts = {}) {
                 if (typeof opts.complete === 'function') opts.complete();
             }
         });
-    });
+    
+        return el;
+    },
 
-    return el;
-};
+    slideDown(opts = {}) {
+        const el = this;
+        el.css.overflow = 'hidden';
+        el.css.display = opts.display ?? 'block';
+    
+        const targetHeight = el.dom.scrollHeight + 'px';
+    
+        el.css.height = '0px';
+        requestAnimationFrame(() => {
+            el.fx({
+                100: { height: targetHeight }
+            }, opts);
+        });
+    
+        return el;
+    },
+
+    slideUp(opts = {}) {
+        const el = this;
+        el.css.overflow = 'hidden';
+    
+        const startHeight = el.dom.offsetHeight + 'px';
+        el.css.height = startHeight;
+    
+        requestAnimationFrame(() => {
+            el.fx({
+                100: { height: '0px' }
+            }, {
+                ...opts,
+                complete: () => {
+                    el.css.display = 'none';
+                    if (typeof opts.complete === 'function') opts.complete();
+                }
+            });
+        });
+    
+        return el;
+    }
+})
 
 function log(...args) {
     console.log.apply(window, args);
@@ -2026,11 +2072,45 @@ function onMount(fn) {
     window.addEventListener("DOMContentLoaded", fn);
 }
 
-// on mounting
+// window, document 
+["window", "document"].forEach((targetName) => {
+    const target = targetName === "window" ? window : document;
+    const refName = targetName === "window" ? "$win" : "$doc";
+
+    const base = {
+        on(event, fn, options = {}) {
+            target.addEventListener(event, fn, options);
+            return this;
+        },
+        off(event, fn, options = {}) {
+            target.removeEventListener(event, fn, options);
+            return this;
+        },
+    };
+
+    const events = targetName === "window"
+        ? ["scroll", "resize", "load", "click"]
+        : ["click", "keydown", "keyup", "mousedown", "mouseup"];
+
+    events.forEach((eventName) => {
+        const methodName = "on" + eventName.charAt(0).toUpperCase() + eventName.slice(1);
+        base[methodName] = function (fn, options = {}) {
+            return this.on(eventName, fn, options);
+        };
+    });
+
+    // 👇 Assegniamo all'oggetto globale (window)
+    window[refName] = base;
+});
+
+
+// on mounting...
+// component bootstrapping
 onMount(() => {
     $.component.bootstrap();
 });
 
+// ajax watchers and handlers
 onMount(() => {
     const debounceTimers = new WeakMap();
     const intervalHandles = new WeakMap();
@@ -2123,8 +2203,10 @@ onMount(() => {
     }
 
     ["get", "post", "put", "patch", "delete"].forEach((method) => {
-        document.querySelectorAll(`[data-ajax-${method}]`).forEach((dom) => {
-            const raw = dom.getAttribute(`data-ajax-${method}`);
+        document.querySelectorAll(`[data-ajax-${method}], [x-${method}]`).forEach((dom) => {
+            const raw = dom.getAttribute(`data-ajax-${method}`) || dom.getAttribute(`x-${method}`);
+            if(!raw) return; 
+
             const config = parseJsObjectString(raw);
             if (!config || !config.url) return;
 
@@ -2230,21 +2312,12 @@ onMount(() => {
     });
 });
 
+// x-state parsing
 onMount(() => {
     const all = document.querySelectorAll("[data-bind-state], [x-state]");
 
     all.forEach((el) => {
         const isData = el.hasAttribute("data-bind-state");
-        const isX = el.hasAttribute("x-state");
-
-        const id = el.id;
-        if (!id) {
-            console.warn(
-                "Element with [data-bind-state] or [x-state] must have an ID"
-            );
-            return;
-        }
-
         const stateStr = isData
             ? el.getAttribute("data-bind-state")
             : el.getAttribute("x-state");
@@ -2264,7 +2337,7 @@ onMount(() => {
             return;
         }
 
-        const refs = $.refs(`#${id}`, parsedState);
+        const refs = $.refs(el, parsedState);
         window[alias] = refs.state;
     });
 });
