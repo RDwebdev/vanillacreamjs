@@ -4,7 +4,7 @@ VanillaCream.Info = {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.4",
+    version: "1.0.5",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -789,7 +789,7 @@ VanillaCream.Elements = class {
         return this.only ? this.selector[0] : this.selector;
     }
 
-    on(event, handler, options = {}) {
+    addEvent(event, handler, options = {}) {
         if (!this._vanillaCreamEventMap)
             this._vanillaCreamEventMap = new WeakMap();
     
@@ -1142,7 +1142,27 @@ VanillaCream.Elements = class {
     }
 };
 
-// event shortcuts
+// events + event shortcuts
+Object.defineProperty(VanillaCream.Elements.prototype, 'on', {
+    get() {
+        const self = this;
+
+        const handlers = {};
+        VanillaCream.PrivateObj.collections.events.forEach((evt) => {
+            handlers[evt] = function (fn, options = {}) {
+                return self.addEvent(evt, fn, options);
+            };
+        });
+
+        return handlers;
+    },
+});
+Object.defineProperty(VanillaCream.Elements.prototype, 'event', {
+    get() {
+        return this.on;
+    }
+});
+
 for (const evt of VanillaCream.PrivateObj.collections.events) {
     const methodName = "on" + evt.charAt(0).toUpperCase() + evt.slice(1);
 
@@ -1151,12 +1171,12 @@ for (const evt of VanillaCream.PrivateObj.collections.events) {
             fn,
             options = {}
         ) {
-            return this.on(evt, fn, options);
+            return this.addEvent(evt, fn, options);
         };
     }
 }
 VanillaCream.Elements.prototype.onReveal = function (fn, options = {}) {
-    return this.on("reveal", fn, options);
+    return this.addEvent("reveal", fn, options);
 };
 
 Object.defineProperty(VanillaCream.Elements.prototype, "swap", {
@@ -1286,7 +1306,7 @@ VanillaCream.PrivateObj.collections.elements.forEach((selector, i) => {
             if (this.text) el.text = this.text;
             if (this._text) el._text = this._text;
 
-            if (this.on) el.on(this.on);
+            if (this.on) el.addEvent(this.on);
             if (this.onClick) el.onClick(this.onClick);
 
             return el;
@@ -1362,8 +1382,9 @@ function $(...args) {
     return els;
 }
 
-function bindDataAttributes(container, state) {
+function bindDataAttributes(container, state, refs = {}) {
     const stateAlias = container.getAttribute?.("data-state-val") || "state";
+    const refsAlias = "refs"
 
     const candidates = [container, ...container.querySelectorAll("*")].filter(
         (el) =>
@@ -1416,8 +1437,8 @@ function bindDataAttributes(container, state) {
                 continue;
             }
 
-            // Events / x-event
-            if (binding.startsWith("event.")) {
+            // Events / x-event / x-on
+            if (binding.startsWith("event.") || binding.startsWith("on.")) {
                 const parts = binding.split(".");
                 const eventName = parts[1];
                 const modifiers = new Set(parts.slice(2));
@@ -1456,21 +1477,22 @@ function bindDataAttributes(container, state) {
                         stateAlias,
                         "event",
                         "el",
+                        refsAlias,
                         `
                         "use strict";
                         const result = (${expr});
-                        return (typeof result === "function") ? result(event, el) : result;
+                        return (typeof result === "function") ? result(event, el, refs) : result;
                     `);                    
 
                     const wrapped = function (e) {
                         if (modifiers.has("prevent")) e.preventDefault();
-                        compiled(state, e, $el); 
+                        compiled(state, e, $el, refs); 
                         if (modifiers.has("once")) {
                             el.removeEventListener(eventName, wrapped);
                         }
                     };                    
 
-                    $el.on(eventName, wrapped);
+                    $el.addEvent(eventName, wrapped);
                 } catch (e) {
                     console.warn(
                         `Invalid event handler in [${attr.name}]`,
@@ -1487,9 +1509,10 @@ function bindDataAttributes(container, state) {
                 const parent = el.parentNode;
 
                 const computeFn = new Function(
-                    stateAlias,
+                    stateAlias, 
+                    refsAlias,
                     `return (${expr})`
-                ).bind(null, state);
+                ).bind(null, state, refs);
                 let visible = null;
 
                 const update = () => {
@@ -1515,8 +1538,9 @@ function bindDataAttributes(container, state) {
             if (binding === "show") {
                 const computeFn = new Function(
                     stateAlias,
+                    refsAlias,
                     `return (${expr})`
-                ).bind(null, state);
+                ).bind(null, state, refs);
                 $el.bindState("css.display", () => (computeFn() ? "" : "none"));
                 continue;
             }
@@ -1526,8 +1550,9 @@ function bindDataAttributes(container, state) {
                 try {
                     const computeFn = new Function(
                         stateAlias,
+                        refsAlias,
                         `return (${expr})`
-                    ).bind(null, state);
+                    ).bind(null, state, refs);
                     $el.bindState("children", computeFn);
                 } catch (e) {
                     console.warn(
@@ -1547,8 +1572,8 @@ function bindDataAttributes(container, state) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(
-                        state
+                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
+                        state, refs
                     );
 
                     for (const key in parsed) {
@@ -1563,8 +1588,8 @@ function bindDataAttributes(container, state) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(
-                        state
+                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
+                        state, refs
                     );
 
                     for (const key in parsed) {
@@ -1579,8 +1604,8 @@ function bindDataAttributes(container, state) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(
-                        state
+                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
+                        state, refs
                     );
 
                     for (const key in parsed) {
@@ -1595,10 +1620,9 @@ function bindDataAttributes(container, state) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, `return (${expr})`)(
-                        state
+                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
+                        state, refs
                     );
-                    log("eeher");
 
                     for (const key in parsed) {
                         const val = parsed[key];
@@ -1610,8 +1634,9 @@ function bindDataAttributes(container, state) {
                 else {
                     const computeFn = new Function(
                         stateAlias,
+                        refsAlias,
                         `return (${expr})`
-                    ).bind(null, state);
+                    ).bind(null, state, refs);
                     $el.bindState(binding, computeFn);
                 }
             } catch (e) {
@@ -1664,7 +1689,7 @@ $.refs = function (root, initialState = null) {
 
     if (state) {
         result.state = state;
-        bindDataAttributes(container, state);
+        bindDataAttributes(container, state, result);
     }
 
     return result;
