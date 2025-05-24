@@ -4,7 +4,7 @@ VanillaCream.Info = {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.5",
+    version: "1.0.6",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -1341,21 +1341,27 @@ Object.defineProperty(Array.prototype, "each", {
 
 // selecting / components
 VanillaCream.Elements.prototype.component = function (Component, options = {}) {
-    const data = options.data ?? Component.data ?? {};
-    const state = Component.state ? $.state(Component.state()) : null;
+    this.selector.forEach((el) => {
+        const $el = $(el);
 
-    const html =
-        typeof Component.template === "function"
-            ? Component.template({ data })
-            : Component.template;
+        $el._setFn(function () {
+            const data = options.data ?? Component.data ?? {};
+            const state = Component.state ? $.state(Component.state()) : null;
 
-    this.html = html;
+            const html =
+                typeof Component.template === "function"
+                    ? Component.template({ data })
+                    : Component.template;
 
-    const refs = $.refs(this.selectorStr, state);
+            $el.html = html;
 
-    Component.setup?.({ refs, data, state });
+            const refs = $.refs(el, state);
 
-    $.component.bootstrap(this.selector[0]);
+            Component.setup?.({ refs, data, state });
+
+            $.component.bootstrap(el);
+        });
+    });
 
     return this;
 };
