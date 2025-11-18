@@ -4,7 +4,11 @@ VanillaCream.Info = {
         name: "Riccardo Degni",
         website: "http://www.riccardodegni.com/",
     },
-    version: "1.0.6",
+    contributors:[{
+        name: "Francesco Cappa",
+        website: "http://www.francescocappa.it/",
+    }],
+    version: "1.0.7",
     copyright: "Riccardo Degni",
     license: "MIT License",
     website: "http://www.riccardodegni.com/projects/vanillacreamjs",
@@ -1388,9 +1392,16 @@ function $(...args) {
     return els;
 }
 
-function bindDataAttributes(container, state, refs = {}) {
+function bindDataAttributes(container, state, refs = {}, locals = null) {
     const stateAlias = container.getAttribute?.("data-state-val") || "state";
     const refsAlias = "refs"
+
+    const evalState = state;
+    const localDecls = locals
+        ? Object.keys(locals)
+              .map((k) => `const ${k} = locals['${k}'];`)
+              .join("\n")
+        : "";
 
     const candidates = [container, ...container.querySelectorAll("*")].filter(
         (el) =>
@@ -1429,14 +1440,15 @@ function bindDataAttributes(container, state, refs = {}) {
             // x-init
             if (binding === "init") {
                 try {
-                    const initFn = new Function(stateAlias, "el", `
+                    const initFn = new Function(stateAlias, "el", "locals", `
                         "use strict";
+                        ${localDecls}
                         const result = (${expr});
                         return (typeof result === "function") ? result(el) : result;
                     `);
 
                     // Esegui subito una sola volta
-                    initFn(state, $el);
+                    initFn(evalState, $el, locals);
                 } catch (e) {
                     console.warn(`Invalid x-init expression: ${expr}`, e);
                 }
@@ -1457,8 +1469,10 @@ function bindDataAttributes(container, state, refs = {}) {
                             "event",
                             "el",
                             "entry",
+                            "locals",
                             `
                             "use strict";
+                            ${localDecls}
                             const result = (${expr});
                             return (typeof result === "function") ? result(event, el, entry) : result;
                         `
@@ -1469,8 +1483,8 @@ function bindDataAttributes(container, state, refs = {}) {
                         $el.onReveal((entry, el) => {
                             if (modifiers.has("once") && revealed) return;
                             revealed = true;
-            
-                            compiled(state, null, el, entry);
+
+                            compiled(evalState, null, el, entry, locals);
                         }, {
                             keep: modifiers.has("keep") || !modifiers.has("once") // keep is true by default unless once is present alone
                         });
@@ -1484,15 +1498,17 @@ function bindDataAttributes(container, state, refs = {}) {
                         "event",
                         "el",
                         refsAlias,
+                        "locals",
                         `
                         "use strict";
+                        ${localDecls}
                         const result = (${expr});
                         return (typeof result === "function") ? result(event, el, refs) : result;
                     `);                    
 
                     const wrapped = function (e) {
                         if (modifiers.has("prevent")) e.preventDefault();
-                        compiled(state, e, $el, refs); 
+                        compiled(evalState, e, $el, refs, locals); 
                         if (modifiers.has("once")) {
                             el.removeEventListener(eventName, wrapped);
                         }
@@ -1517,8 +1533,9 @@ function bindDataAttributes(container, state, refs = {}) {
                 const computeFn = new Function(
                     stateAlias, 
                     refsAlias,
-                    `return (${expr})`
-                ).bind(null, state, refs);
+                    "locals",
+                    `"use strict"; ${localDecls} return (${expr})`
+                ).bind(null, evalState, refs, locals);
                 let visible = null;
 
                 const update = () => {
@@ -1545,8 +1562,9 @@ function bindDataAttributes(container, state, refs = {}) {
                 const computeFn = new Function(
                     stateAlias,
                     refsAlias,
-                    `return (${expr})`
-                ).bind(null, state, refs);
+                    "locals",
+                    `"use strict"; ${localDecls} return (${expr})`
+                ).bind(null, evalState, refs, locals);
                 $el.bindState("css.display", () => (computeFn() ? "" : "none"));
                 continue;
             }
@@ -1557,8 +1575,9 @@ function bindDataAttributes(container, state, refs = {}) {
                     const computeFn = new Function(
                         stateAlias,
                         refsAlias,
-                        `return (${expr})`
-                    ).bind(null, state, refs);
+                        "locals",
+                        `"use strict"; ${localDecls} return (${expr})`
+                    ).bind(null, evalState, refs, locals);
                     $el.bindState("children", computeFn);
                 } catch (e) {
                     console.warn(
@@ -1570,16 +1589,111 @@ function bindDataAttributes(container, state, refs = {}) {
                 continue;
             }
 
+            // x-for
+            if (binding === "for") {
+                const parent = el.parentNode;
+                const placeholder = document.createComment("x-for placeholder");
+                parent.replaceChild(placeholder, el);
+
+                const raw = expr.trim();
+                const m = raw.match(/^\s*\(?\s*([a-zA-Z_$][\w$]*)\s*(?:,\s*([a-zA-Z_$][\w$]*))?\s*\)?\s+in\s+([\s\S]+)$/);
+                if (!m) {
+                    console.warn(`Invalid x-for expression: ${expr}`);
+                    continue;
+                }
+
+                const var1 = m[1];
+                const var2 = m[2] || null;
+                const srcExpr = m[3];
+
+                const computeSrc = new Function(
+                    stateAlias,
+                    refsAlias,
+                    `"use strict"; return (${srcExpr});`
+                ).bind(null, evalState, refs);
+
+                const keyExpr = el.getAttribute("x-key") || el.getAttribute("data-key") || el.getAttribute("key") || null;
+
+                const render = () => {
+                    const list = computeSrc();
+                    const nodes = [];
+
+                    const makeClone = (localsObj, keyVal) => {
+                        const clone = el.cloneNode(true);
+                        clone.removeAttribute("x-for");
+                        clone.removeAttribute("data-bind-for");
+                        clone.removeAttribute("x-key");
+                        if (keyVal != null) clone.dataset.key = String(keyVal);
+                        bindDataAttributes(clone, state, refs, localsObj);
+                        return clone;
+                    };
+
+                    if (Array.isArray(list)) {
+                        list.forEach((item, index) => {
+                            const localsObj = {};
+                            localsObj[var1] = item;
+                            if (var2) localsObj[var2] = index; else localsObj.index = index;
+
+                            let k = null;
+                            if (keyExpr) {
+                                try {
+                                    const kDecls = `const ${var1} = locals['${var1}']; const ${var2 || "index"} = locals['${var2 || "index"}'];`;
+                                    const kfn = new Function(stateAlias, refsAlias, "locals", `"use strict"; ${kDecls} return (${keyExpr});`);
+                                    k = kfn(evalState, refs, { [var1]: item, [var2 || "index"]: index });
+                                } catch {}
+                            }
+                            if (k == null) {
+                                if (item && typeof item === "object" && Object.prototype.hasOwnProperty.call(item, "id")) k = item.id;
+                                else k = index;
+                            }
+                            nodes.push(makeClone(localsObj, k));
+                        });
+                    } else if (list && typeof list === "object") {
+                        const keys = Object.keys(list);
+                        keys.forEach((key, idx) => {
+                            const value = list[key];
+                            const localsObj = {};
+                            localsObj[var1] = value;
+                            if (var2) localsObj[var2] = key; else localsObj.key = key;
+                            localsObj.index = idx;
+
+                            let k = null;
+                            if (keyExpr) {
+                                try {
+                                    const kDecls = `const ${var1} = locals['${var1}']; const ${var2 || "key"} = locals['${var2 || "key"}']; const index = locals['index'];`;
+                                    const kfn = new Function(stateAlias, refsAlias, "locals", `"use strict"; ${kDecls} return (${keyExpr});`);
+                                    k = kfn(evalState, refs, { [var1]: value, [var2 || "key"]: (var2 ? key : undefined), index: idx });
+                                } catch {}
+                            }
+                            if (k == null) k = key;
+                            nodes.push(makeClone(localsObj, k));
+                        });
+                    }
+
+                    $(parent).children = nodes;
+                };
+
+                render();
+                for (const key of Object.keys(state)) {
+                    state._addWatcher(key, render);
+                }
+                continue;
+            }
+
             // Other bindings
             try {
+                // Skip x-key binding
+                if (binding === "key") {
+                    continue;
+                }
                 // x-class
                 if (
                     binding === "class" &&
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
-                        state, refs
+                    const parsed = new Function(stateAlias, refsAlias, "locals", `"use strict"; ${localDecls} return (${expr})`)(
+                        evalState, refs, locals
                     );
 
                     for (const key in parsed) {
@@ -1594,8 +1708,8 @@ function bindDataAttributes(container, state, refs = {}) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
-                        state, refs
+                    const parsed = new Function(stateAlias, refsAlias, "locals", `"use strict"; ${localDecls} return (${expr})`)(
+                        evalState, refs, locals
                     );
 
                     for (const key in parsed) {
@@ -1610,8 +1724,8 @@ function bindDataAttributes(container, state, refs = {}) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
-                        state, refs
+                    const parsed = new Function(stateAlias, refsAlias, "locals", `"use strict"; ${localDecls} return (${expr})`)(
+                        evalState, refs, locals
                     );
 
                     for (const key in parsed) {
@@ -1626,8 +1740,8 @@ function bindDataAttributes(container, state, refs = {}) {
                     expr.trim().startsWith("{") &&
                     expr.trim().endsWith("}")
                 ) {
-                    const parsed = new Function(stateAlias, refsAlias, `return (${expr})`)(
-                        state, refs
+                    const parsed = new Function(stateAlias, refsAlias, "locals", `"use strict"; ${localDecls} return (${expr})`)(
+                        evalState, refs, locals
                     );
 
                     for (const key in parsed) {
@@ -1641,8 +1755,9 @@ function bindDataAttributes(container, state, refs = {}) {
                     const computeFn = new Function(
                         stateAlias,
                         refsAlias,
-                        `return (${expr})`
-                    ).bind(null, state, refs);
+                        "locals",
+                        `"use strict"; ${localDecls} return (${expr})`
+                    ).bind(null, evalState, refs, locals);
                     $el.bindState(binding, computeFn);
                 }
             } catch (e) {
