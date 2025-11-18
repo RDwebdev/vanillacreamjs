@@ -7,23 +7,133 @@
 
 <body>
   <!-- app -->
-  <div id="app">
+  <section id="app">
     <button ref="btn">Increase counter</button>
+    <ul ref="ul"></ul>
     <div ref="output"></div>
-  </div>
-
-  <script>
-    const { btn, output, state } = $.refs('#app', { count: 0 });
-
-    btn.onClick(() => state.count++);
-    output.text = () => `Counter: ${state.count}`;
-  </script>
-
+    Enter text: <input type="text" ref="txt">
+    <span ref="message"></span>
+    <div ref="d1" data-component="message-box" data-title="Hello comp1!" data-message="Loaded via data-component"></div>
+    <div ref="d2" data-component="message-box" data-title="Hello comp2!" data-message="Loaded via data-component"></div>
+  </section>
+  
   <!-- app -->
-  <div id="app2" x-state="{count: 0}">
+  <section id="app2" x-state="{count: 0}">
     <button x-event.click="() => state.count++">Increase counter</button>
     <div x-text="`Counter: ${state.count}`"></div>
-  </div>
+  </section>
+
+  <section id="app-component"></section>
+
+  <section x-get="{
+      url: 'https://httpbin.org/html',
+      beforeStart: '<b>Loading...</b>',
+      delay: 3,
+      headers: { 'X-custom': 'Ciao!' },
+      on: 'click'
+  }">Click here</section>
+
+
+  <section id="queryEach">
+    <div class="q">Q1</div>
+    <div class="q">Q2</div>
+    <div class="q">Q3</div>
+  </section>
+
+  <!-- x-for array -->
+  <section id="xfor-array" x-state="{ items: [ { id:'a', name:'Alpha' }, { id:'b', name:'Beta' } ] }">
+    <ul>
+      <li x-for="(item, index) in state.items" x-key="item.id">
+        <span x-text="item.name"></span>
+        <small x-text="index"></small>
+      </li>
+    </ul>
+    <button x-on.click="() => { state.items = [ { id:'b', name:'Beta' }, { id:'c', name:'Gamma' } ] }">Update Items</button>
+  </section>
+
+  <!-- x-for object -->
+  <section id="xfor-object" x-state="{ dict: { one:1, two:2 } }">
+    <div>
+      <div x-for="(val, key) in state.dict" x-key="key">
+        <span x-text="key"></span>: <span x-text="val"></span>
+      </div>
+    </div>
+    <button x-on.click="() => { state.dict = { two:2, three:3 } }">Update Dict</button>
+  </section>
+
+  <script>
+    const { 
+      txt, 
+      ul, 
+      message, 
+      output, 
+      btn, 
+      state
+    } = $.refs('#app', {counter: 0, items: ['a', 'b', 'c'], x: "", counterCustom: 10})
+    output.get('https://httpbin.org/html') // load content into this element via GET
+    output.text = () => state.counter
+    output.attr.title = () => 'Counter: ' + state.counter
+    output.css.border = () => `${state.counter}px solid #E4AE5A`
+    output.css.backgroundColor = () => state.counter >= 10 ? '#FBF2DE' : 'lightblue'
+
+    ul.children = () => state.items.map((li, i) => new Li({text: li, key: li}))
+    
+    message.text = () => state.x ? 'Message: ' + state.x : '-'
+    txt.onInput(() => state.x = txt.attr.value)
+    btn.onClick(() => { 
+      ++state.counter; 
+      state.items.push(`New item ${state.items.length+1}`)
+    });
+
+    const Counter = {
+        state: () => ({ counter: 0 }),
+        template: `<p ref="p"></p> <button ref="inc">Increment</button>`,
+        setup({ refs, state }) {
+            const {p, inc } = refs
+
+            p.text = () => state.counter;
+            inc.onClick(() => state.counter++)
+        }
+    }
+    $('#app-component').component(Counter);
+
+
+    const {box1, d1, d2} = $.refs('#app')
+    d1.data.x = 10;
+    d2.data.x = 100;
+
+    (async()=>{
+        const res = await $.get('https://httpbin.org/html') // get response
+      console.log(res);
+    })();
+
+    const MessageBox = {
+        state: () => ({counter: 0}),
+        template: ({ data }) => `
+            <div class="message-box">
+                <h3>${data.title}</h3>
+                <p>${data.message}</p>
+                <button ref="btn">Increase counter</button>
+                <div ref="counter"></div>
+                <div>Data: ${data.x}</div>
+            </div>
+        `,
+        setup: ({refs, state, data}) => {
+            const {counter, btn} = refs;
+            state.counter = data.x
+            counter.text = () => state.counter
+            btn.onClick(() => state.counter++)
+        }
+    };
+
+    $.component.register('message-box', MessageBox);
+
+    $('#queryEach').find = $('#queryEach').query;
+    $('#queryEach').query('.q').each(($el, i) => {
+      $el.css.set({ backgroundColor: i % 2 ? '#eee' : '#ddd' });
+    });
+  </script>
+
 </body>
 
 </html>
